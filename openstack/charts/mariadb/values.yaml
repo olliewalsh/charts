@@ -1,0 +1,8 @@
+crKind: MariaDB
+overrides:
+  spec:
+    storageClass: "host-nfs-storageclass"
+    tls:
+      secretName: mariadb-tls
+      caSecretName: mariadb-tls
+    

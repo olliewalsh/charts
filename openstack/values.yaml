@@ -1,0 +1,4 @@
+global:
+  namespace: openstack
+  password: abcd1234
+  passwordSecret: osp-secret

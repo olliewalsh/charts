@@ -1,0 +1,99 @@
+{{ $example := "" }}
+{{ $crKind := .Values.crKind }}
+{{ range $_, $csv := (lookup "operators.coreos.com/v1alpha1" "ClusterServiceVersion" .Values.global.namespace "").items }}
+  {{ if not $example }}
+    {{ with dig "spec" "customresourcedefinitions" "owned" "" $csv }}
+      {{ range $_, $cr := . }}
+        {{ if eq .kind $crKind }}
+          {{ with dig "metadata" "annotations" "alm-examples" "" $csv | mustFromJson }}
+            {{ range $_, $ex := . }}
+              {{ if eq .kind $crKind }}
+                {{ $example = $ex }}
+              {{ end }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ if not $example }}
+{{ cat $crKind " alm-example not found" | fail }}
+{{ end }}
+
+{{ $override := dict
+  "metadata"
+  (
+    dict
+    "namespace" .Values.global.namespace
+  )
+  "spec"
+  (
+    dict
+    "secret" .Values.global.passwordSecret
+  )
+}}
+---
+{{ .Values.overrides | default "{}" | mergeOverwrite $example $override | mustToJson }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Chart.Name }}-dbclient-cert
+  namespace: {{ .Values.global.namespace }}
+spec:
+  # Secret names are always required.
+  secretName: {{ .Chart.Name }}-dbclient-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: keystone
+  subject:
+    organizationalUnits:
+      - mariadb
+    organizations:
+      - openstack
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - client auth
+  dnsNames:
+    - {{ $example.metadata.name }}
+    - {{ $example.metadata.name }}.{{ .Values.global.namespace }}
+    - {{ $example.metadata.name }}.{{ .Values.global.namespace }}.svc.cluster.local
+  issuerRef:
+    name: ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Chart.Name }}-cert
+  namespace: {{ .Values.global.namespace }}
+spec:
+  # Secret names are always required.
+  secretName: {{ .Chart.Name }}-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+      - openstack
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+  dnsNames:
+    - {{ $example.metadata.name }}
+    - {{ $example.metadata.name }}.{{ .Values.global.namespace }}
+    - {{ $example.metadata.name }}.{{ .Values.global.namespace }}.svc.cluster.local
+  issuerRef:
+    name: ca-issuer
+    kind: Issuer
+    group: cert-manager.io

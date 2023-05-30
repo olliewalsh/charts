@@ -1,0 +1,26 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: {{ .Chart.Name }}-index
+  namespace: {{ .Values.global.namespace }}
+spec:
+  image: {{ .Values.operatorImage }}
+  sourceType: grpc
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  name: {{ .Chart.Name }}
+  channel: alpha
+  config:
+    env:
+    - name: WATCH_NAMESPACE
+      value: {{ .Values.global.namespace }}
+  source: {{ .Chart.Name }}-index
+  sourceNamespace: {{ .Values.global.namespace }}
+# TODO: add post-install hook to wait for CRs
+# TODO: add post-delete hook to remove all database finalizers and CRs

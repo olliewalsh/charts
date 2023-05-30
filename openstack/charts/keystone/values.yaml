@@ -1,0 +1,7 @@
+crKind: KeystoneAPI
+overrides:
+  spec:
+    storageClass: "host-nfs-storageclass"
+    tls:
+      databaseSecretName: keystone-dbclient-tls
+    
